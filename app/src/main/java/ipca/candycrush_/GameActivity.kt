@@ -1,7 +1,9 @@
 package ipca.candycrush_
 
 import android.graphics.Point
+import android.os.Build
 import android.os.Bundle
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 
 class GameActivity : AppCompatActivity() {
@@ -22,6 +24,7 @@ class GameActivity : AppCompatActivity() {
         gameView?.pause()
     }
 
+    @RequiresApi(Build.VERSION_CODES.N)
     override fun onResume() {
         super.onResume()
         gameView?.resume()
