@@ -6,9 +6,11 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.os.Build
 import android.util.AttributeSet
+import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import androidx.annotation.RequiresApi
+import java.util.Collections.swap
 
 class GameView  : SurfaceView, Runnable {
 
@@ -27,6 +29,9 @@ class GameView  : SurfaceView, Runnable {
     var score = 0
     var moves = 10
 
+    val numberBlocks = 10
+    val blockSize : Float = (sizeX / numberBlocks).toFloat()
+
     private val candies = arrayOf(
         R.drawable.bluecandy, R.drawable.greencandy,
         R.drawable.purplecandy, R.drawable.orangecandy, R.drawable.yellowcandy,
@@ -36,8 +41,7 @@ class GameView  : SurfaceView, Runnable {
     private  fun init(context: Context?, sizeX : Int, sizeY : Int) {
         // Set variables
         surfaceHolder = holder
-        val numberBlocks = 10
-        val blockSize : Float = (sizeX / numberBlocks).toFloat()
+
         this.sizeX = sizeX
         this.sizeY = sizeY
 
@@ -82,6 +86,7 @@ class GameView  : SurfaceView, Runnable {
             update()
             draw()
             control()
+            WhenIsGameOver()
         }
     }
 
@@ -98,10 +103,11 @@ class GameView  : SurfaceView, Runnable {
                 canvas?.drawColor(Color.BLACK)
 
                 paint.color = Color.WHITE
+                paint.textSize = 30f
 
                 canvas?.drawText("Moves :${moves}", 0f, 50f, paint)
-                canvas?.drawText("Meta :${meta}", 0f, 100f, paint)
-                canvas?.drawText("Score :${score}", 0f, 80f, paint)
+                canvas?.drawText("Meta :${meta}", 0f, 130f, paint)
+                canvas?.drawText("Score :${score}", 0f, 90f, paint)
 
                 for (candy in board) {
                     canvas?.drawBitmap(
@@ -115,6 +121,7 @@ class GameView  : SurfaceView, Runnable {
             }
         }
     }
+
 
     private fun control() {
         Thread.sleep(17L)
@@ -141,12 +148,8 @@ class GameView  : SurfaceView, Runnable {
 
     fun WhenIsGameOver() {
 
-        /*when(chronometer.stop()) {
-
+        if(score < meta && moves == 0)
             gameOver()
-        }*/
-        //chama o gameover quando o tempo chega ao fim, movimentos =0 e quando os movimentos = 0 score < meta
-
     }
 
 
@@ -158,5 +161,82 @@ class GameView  : SurfaceView, Runnable {
         paint.color = Color.BLUE
         canvas?.drawText("Game Over", 100F,50F, paint)
 
+    }
+
+    fun canSwap(index: Int, candy: Candy) {
+
+        var row = board[index].row
+        var column = board[index].column
+        var counter = 0
+
+        for(i in row - 1 downTo 0){
+
+           if(equals(equalCandies(board[index], board[i]))){
+
+               counter++;
+           }
+
+            if (counter == 3){
+
+            }
+        }
+
+        for(i in row + 1 until 9){
+
+            if(equals(equalCandies(board[index], board[i]))){
+
+                counter++;
+            }
+
+            if (counter == 3){
+
+            }
+        }
+
+        for(i in column - 10 downTo 0 ){
+
+            if(equals(equalCandies(board[index], board[i]))){
+
+                counter++;
+            }
+
+            if (counter == 3){
+
+            }
+        }
+
+        for(i in column + 10 until 9 ){
+
+            if(equals(equalCandies(board[index], board[i]))){
+
+                counter++;
+            }
+
+            if (counter == 3){
+
+            }
+        }
+
+    }
+
+    fun equalCandies(candy1: Candy, candy2: Candy): Boolean{
+      return candy1.drawable == candy2.drawable
+    }
+
+    override fun onTouchEvent(event: MotionEvent?): Boolean {
+        when (event?.action){
+            MotionEvent.ACTION_UP ->{
+
+            }
+            MotionEvent.ACTION_DOWN ->{
+
+
+
+            }
+        }
+
+
+
+        return true
     }
 }
