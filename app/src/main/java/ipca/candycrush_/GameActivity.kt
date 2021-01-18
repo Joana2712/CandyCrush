@@ -1,10 +1,13 @@
 package ipca.candycrush_
 
 import android.graphics.Point
+import android.graphics.SurfaceTexture
 import android.os.Build
-import android.os.Bundle
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import android.os.Bundle
+import android.view.SurfaceView
+import android.widget.GridLayout
+import androidx.annotation.RequiresApi
 
 class GameActivity : AppCompatActivity() {
 
@@ -12,10 +15,11 @@ class GameActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_game)
         val display = windowManager.defaultDisplay
         val size = Point()
         display.getSize(size)
-       // gameView = GameView(this, size.x, size.y )
+        gameView = GameView(this, size.x, size.y)
         setContentView(gameView)
     }
 
