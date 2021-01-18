@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.DisplayMetrics
+import android.widget.ImageButton
 
 class MainActivity : AppCompatActivity() {
 
@@ -11,10 +12,11 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Testing
-        val intent = Intent(this@MainActivity, GameActivity::class.java)
-        startActivity(intent)
-
+        val imageButtonPlay = findViewById<ImageButton>(R.id.imageButtonPlayNow)
+        imageButtonPlay.setOnClickListener {
+            val intent = Intent(this@MainActivity, GameActivity::class.java)
+            startActivity(intent)
+        }
     }
 
 

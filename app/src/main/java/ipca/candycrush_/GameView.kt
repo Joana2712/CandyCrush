@@ -6,11 +6,20 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.os.Build
 import android.util.AttributeSet
+<<<<<<< HEAD
+=======
+import android.util.Log
+>>>>>>> 20dad345a69f943c5a7a7af6ef885af9abfc2ba5
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import android.widget.Toast
 import androidx.annotation.RequiresApi
+<<<<<<< HEAD
 import java.util.Collections.swap
+=======
+import kotlin.math.abs
+>>>>>>> 20dad345a69f943c5a7a7af6ef885af9abfc2ba5
 
 class GameView  : SurfaceView, Runnable {
 
@@ -24,6 +33,11 @@ class GameView  : SurfaceView, Runnable {
     var sizeY : Int = 0
 
     val board = ArrayList<Candy>()
+    val numberBlocks = 10
+    var xDown : Float = 0f
+    var xUp : Float = 0f
+    var yDown : Float = 0f
+    var yUp : Float = 0f
 
     var meta = 1900
     var score = 0
@@ -41,7 +55,11 @@ class GameView  : SurfaceView, Runnable {
     private  fun init(context: Context?, sizeX : Int, sizeY : Int) {
         // Set variables
         surfaceHolder = holder
+<<<<<<< HEAD
 
+=======
+        val blockSize : Float = (sizeX / numberBlocks).toFloat()
+>>>>>>> 20dad345a69f943c5a7a7af6ef885af9abfc2ba5
         this.sizeX = sizeX
         this.sizeY = sizeY
 
@@ -113,7 +131,7 @@ class GameView  : SurfaceView, Runnable {
                     canvas?.drawBitmap(
                         candy.bitmap,
                         candy.row.toFloat() * candy.width,
-                        candy.column.toFloat() * candy.height + sizeX / 3,
+                        candy.column.toFloat() * candy.height + sizeY / 3,
                         paint)
                 }
 
@@ -163,6 +181,7 @@ class GameView  : SurfaceView, Runnable {
 
     }
 
+<<<<<<< HEAD
     fun canSwap(index: Int, candy: Candy) {
 
         var row = board[index].row
@@ -240,3 +259,47 @@ class GameView  : SurfaceView, Runnable {
         return true
     }
 }
+=======
+    override fun onTouchEvent(event: MotionEvent?): Boolean {
+
+        when (event?.action){
+            MotionEvent.ACTION_DOWN -> {
+                xDown = event.x
+                yDown = event.y
+            }
+            MotionEvent.ACTION_UP -> {
+                xUp = event.x
+                yUp = event.y
+
+                val deltaX = abs(xUp - xDown)
+                val deltaY = abs(yUp - yDown)
+                val minDist = 15
+
+                val row = xDown / board[0].width
+                val column = (yDown - sizeY / 3) / board[0].height
+                val indexFirst = row.toInt() + column.toInt() * numberBlocks
+                Log.d("tag", "${row}, $column, $indexFirst")
+
+                if (deltaX > deltaY && deltaX > minDist) {
+                    if (xUp > xDown) {
+                        Log.d("tag", "Swipe right")
+                    }
+                    else if (xUp < xDown) {
+                        Log.d("tag", "Swipe left")
+                    }
+                }
+                else if (deltaX < deltaY && deltaY > minDist) {
+                    if (yUp > yDown) {
+                        Log.d("tag", "Swipe Down")
+                    }
+                    else if (yUp < yDown) {
+                        Log.d("tag", "Swipe Up")
+                    }
+                }
+            }
+        }
+        return true
+    }
+
+}
+>>>>>>> 20dad345a69f943c5a7a7af6ef885af9abfc2ba5
