@@ -5,26 +5,23 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.os.Build
-import android.os.SystemClock
 import android.util.AttributeSet
 import android.view.SurfaceHolder
 import android.view.SurfaceView
-import android.view.ViewGroup
-import android.widget.GridLayout
-import android.widget.ImageView
-import android.widget.TextView
 import androidx.annotation.RequiresApi
-import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.android.synthetic.main.activity_main.view.*
 
 class GameView  : SurfaceView, Runnable {
 
-    var playing = false
+    var playing = true
     var gameThread : Thread? = null
 
     var surfaceHolder : SurfaceHolder? = null
     var canvas : Canvas? = null
     var paint : Paint = Paint()
+    var sizeX : Int = 0
+    var sizeY : Int = 0
+
+    val board = ArrayList<Candy>()
 
     var meta = 1900
     var score = 0
@@ -36,41 +33,39 @@ class GameView  : SurfaceView, Runnable {
         R.drawable.redcandy
     )
 
-    private  fun init(sizeX : Int, sizeY : Int) {
+    private  fun init(context: Context?, sizeX : Int, sizeY : Int) {
         // Set variables
-        val board : GridLayout = findViewById(R.id.board)
+        surfaceHolder = holder
         val numberBlocks = 10
-        val blockSize = sizeX / numberBlocks
-
-        // Create the board
-        board.rowCount = numberBlocks
-        board.columnCount = numberBlocks
-        board.layoutParams.height = sizeX
-        board.layoutParams.width = sizeY
+        val blockSize : Float = (sizeX / numberBlocks).toFloat()
+        this.sizeX = sizeX
+        this.sizeY = sizeY
 
         // Fill the board
-        for(i in 1..numberBlocks * numberBlocks) {
-            // Create the image view
-            val image = ImageView(board.context)
-            image.id = i
-            image.layoutParams.width = blockSize
-            image.layoutParams.height = blockSize
+        for(i in 0 until numberBlocks) {
+            for (j in 0 until  numberBlocks) {
+                // Choose a random candy
+                val candy = candies[(Math.random() * candies.size).toInt()]
 
-            // Set a random image
-            image.setImageResource(candies[Math.random().toInt() * candies.size])
-
-            // Add the image to the board
-            board.addView(image)
+                // Set a random image
+                board.add(Candy(context!!, i, j, candy, blockSize))
+            }
         }
     }
 
-    constructor(context: Context?) : super(context)
-    constructor(context: Context?, attrs: AttributeSet?) : super(context, attrs)
+    constructor(context: Context?, sizeX : Int, sizeY : Int) : super(context) {
+        init(context, sizeX, sizeY)
+    }
+    constructor(context: Context?, attrs: AttributeSet?) : super(context, attrs) {
+        init(context, 0, 0)
+    }
     constructor(context: Context?, attrs: AttributeSet?, defStyleAttr: Int) : super(
         context,
         attrs,
         defStyleAttr
-    )
+    ) {
+        init(context, 0,0)
+    }
 
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     constructor(
@@ -78,14 +73,15 @@ class GameView  : SurfaceView, Runnable {
         attrs: AttributeSet?,
         defStyleAttr: Int,
         defStyleRes: Int
-    ) : super(context, attrs, defStyleAttr, defStyleRes)
+    ) : super(context, attrs, defStyleAttr, defStyleRes) {
+        init (context, 0, 0)
+    }
 
     override fun run() {
         while (playing) {
             update()
             draw()
             control()
-            gameOver()
         }
     }
 
@@ -107,6 +103,15 @@ class GameView  : SurfaceView, Runnable {
                 canvas?.drawText("Meta :${meta}", 0f, 100f, paint)
                 canvas?.drawText("Score :${score}", 0f, 80f, paint)
 
+                for (candy in board) {
+                    canvas?.drawBitmap(
+                        candy.bitmap,
+                        candy.row.toFloat() * candy.width,
+                        candy.column.toFloat() * candy.height + sizeX / 3,
+                        paint)
+                }
+
+                surfaceHolder?.unlockCanvasAndPost(canvas)
             }
         }
     }
@@ -125,9 +130,9 @@ class GameView  : SurfaceView, Runnable {
     fun resume(){
         playing = true
 
-        chronometer.isCountDown = true
+        /*chronometer.isCountDown = true
         chronometer.base= SystemClock.elapsedRealtime() + 300000
-        chronometer.start()
+        chronometer.start()*/
         //por margem a 0.00 para o fim
 
         gameThread = Thread(this)
