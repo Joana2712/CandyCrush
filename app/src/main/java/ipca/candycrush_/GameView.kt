@@ -12,6 +12,7 @@ import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import androidx.annotation.RequiresApi
+import kotlinx.android.synthetic.main.activity_game.view.*
 import kotlin.math.abs
 
 class GameView  : SurfaceView, Runnable {
@@ -194,8 +195,9 @@ class GameView  : SurfaceView, Runnable {
             return column + row * numberBlocks
         }
 
-        // Test rows
-        for(i in 0 until numberBlocks){
+        //test rows
+        for(i in row - 1 downTo 0){
+
             val nextIndex = computeIndex(i, column)
 
             // Don't test if the same candy
@@ -210,8 +212,43 @@ class GameView  : SurfaceView, Runnable {
             }
         }
 
-        // Test columns
-        for(i in 0 until numberBlocks ){
+        //test rows
+        for(i in row + 1 until 9){
+
+            val nextIndex = computeIndex(i, column)
+
+            // Don't test if the same candy
+            if (candyIndex != nextIndex) {
+                if (test(position)) {
+                    if (counter == 3) {
+                        return true
+                    }
+                }
+                else
+                    break
+            }
+        }
+
+        //test columns
+        for(i in column - 10 downTo 0 ){
+
+            val nextIndex = computeIndex(row, i)
+
+            // Don't test if the same candy
+            if (position != nextIndex) {
+                if (test(nextIndex)) {
+                    if (counter == 3) {
+                        return true
+                    }
+                }
+                else
+                    break
+            }
+        }
+
+        //test columns
+        for(i in column + 10 until 9 ){
+
             val nextIndex = computeIndex(row, i)
 
             // Don't test if the same candy
@@ -228,6 +265,45 @@ class GameView  : SurfaceView, Runnable {
 
         Log.d("tag", "$counter")
         return false
+    }
+
+    private fun Swipe(index1: Int, index2: Int){
+
+        var row = board[index1].row
+        var column = board[index1].column
+
+       val temp: Candy
+
+        //swipe
+        temp = board[index1]
+       board[index1] = board[index2]
+        board[index2] = temp
+
+        //rows
+       for(i in row - 1 downTo 0){
+
+
+       }
+        
+        //rows
+        for(i in row + 1 until 9){
+
+
+        }
+
+
+        //columns
+        for(i in column - 10 downTo 0){
+
+
+        }
+
+        //columns
+        for(i in column + 10 until 9){
+
+
+        }
+
     }
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
@@ -263,6 +339,7 @@ class GameView  : SurfaceView, Runnable {
                         if (column > 0 &&
                             (canSwap(index, index - 1) || canSwap(index - 1, index))) {
                             Log.d("tag", "Can swap")
+
                         }
                     }
                 }
@@ -270,14 +347,14 @@ class GameView  : SurfaceView, Runnable {
                     if (yUp > yDown) {
                         Log.d("tag", "Swipe Down")
                         if (row < numberBlocks - 1 &&
-                            (canSwap(index, index + 1) || canSwap(index + 1, index))) {
+                            (canSwap(index, index + numberBlocks) || canSwap(index + numberBlocks, index))) {
                             Log.d("tag", "Can swap")
                         }
                     }
                     else if (yUp < yDown) {
                         Log.d("tag", "Swipe Up")
                         if (column > 0 &&
-                            (canSwap(index, index - 1) || canSwap(index - 1, index))) {
+                            (canSwap(index, index - numberBlocks) || canSwap(index - numberBlocks, index))) {
                             Log.d("tag", "Can swap")
                         }
                     }
