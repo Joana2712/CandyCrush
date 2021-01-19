@@ -36,7 +36,7 @@ class GameView  : SurfaceView, Runnable {
     var score = 0
     var moves = 10
 
-    val blockSize : Float = (sizeX / numberBlocks).toFloat()
+    var blockSize : Float = 0f
 
     private val candies = arrayOf(
         R.drawable.bluecandy, R.drawable.greencandy,
@@ -48,20 +48,18 @@ class GameView  : SurfaceView, Runnable {
         // Set variables
         surfaceHolder = holder
 
-
-
-        val blockSize : Float = (sizeX / numberBlocks).toFloat()
+        blockSize = (sizeX / numberBlocks).toFloat()
         this.sizeX = sizeX
         this.sizeY = sizeY
 
         // Fill the board
-        for(i in 0 until numberBlocks) {
-            for (j in 0 until  numberBlocks) {
+        for(row in 0 until numberBlocks) {
+            for (column in 0 until  numberBlocks) {
                 // Choose a random candy
                 val candy = candies[(Math.random() * candies.size).toInt()]
 
                 // Set a random image
-                board.add(Candy(context!!, i, j, candy, blockSize))
+                board.add(Candy(context!!, column, row, candy, blockSize))
             }
         }
     }
@@ -121,8 +119,8 @@ class GameView  : SurfaceView, Runnable {
                 for (candy in board) {
                     canvas?.drawBitmap(
                         candy.bitmap,
-                        candy.row.toFloat() * candy.width,
-                        candy.column.toFloat() * candy.height + sizeY / 3,
+                        candy.column.toFloat() * candy.width,
+                        candy.row.toFloat() * candy.height + sizeY / 3,
                         paint)
                 }
 
@@ -172,82 +170,65 @@ class GameView  : SurfaceView, Runnable {
 
     }
 
-    fun canSwap(index: Int, candy: Candy) {
+    /**
+     * @param position The position to swap to
+     * @param candyIndex the candy index to swap
+     */
+    private fun canSwap(position: Int, candyIndex: Int) : Boolean {
 
-        var row = board[index].row
-        var column = board[index].column
+        var row = board[position].row
+        var column = board[position].column
+        val candy = board[candyIndex]
         var counter = 0
 
-        for(i in row - 1 downTo 0){
+        // Helper functions
+        fun test(index: Int) : Boolean {
+            return if(candy.equals(board[index])) {
+                counter++
+                true
+            } else
+                false
+        }
 
-           if(equals(equalCandies(board[index], board[i]))){
+        fun computeIndex(row: Int, column: Int) : Int {
+            return column + row * numberBlocks
+        }
 
-               counter++;
-           }
+        // Test rows
+        for(i in 0 until numberBlocks){
+            val nextIndex = computeIndex(i, column)
 
-            if (counter == 3){
-
+            // Don't test if the same candy
+            if (candyIndex != nextIndex) {
+                if (test(position)) {
+                    if (counter == 3) {
+                        return true
+                    }
+                }
+                else
+                    break
             }
         }
 
-        for(i in row + 1 until 9){
+        // Test columns
+        for(i in 0 until numberBlocks ){
+            val nextIndex = computeIndex(row, i)
 
-            if(equals(equalCandies(board[index], board[i]))){
-
-                counter++;
-            }
-
-            if (counter == 3){
-
-            }
-        }
-
-        for(i in column - 10 downTo 0 ){
-
-            if(equals(equalCandies(board[index], board[i]))){
-
-                counter++;
-            }
-
-            if (counter == 3){
-
+            // Don't test if the same candy
+            if (position != nextIndex) {
+                if (test(nextIndex)) {
+                    if (counter == 3) {
+                        return true
+                    }
+                }
+                else
+                    break
             }
         }
 
-        for(i in column + 10 until 9 ){
-
-            if(equals(equalCandies(board[index], board[i]))){
-
-                counter++;
-            }
-
-            if (counter == 3){
-
-            }
-        }
-
+        Log.d("tag", "$counter")
+        return false
     }
-
-    fun equalCandies(candy1: Candy, candy2: Candy): Boolean{
-      return candy1.drawable == candy2.drawable
-    }
-
-    override fun onTouchEvent(event: MotionEvent?): Boolean {
-        when (event?.action){
-            MotionEvent.ACTION_UP ->{
-
-            }
-            MotionEvent.ACTION_DOWN ->{
-
-
-
-            }
-        }
-
-
-        return true
-    }
-}
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
 
@@ -264,25 +245,41 @@ class GameView  : SurfaceView, Runnable {
                 val deltaY = abs(yUp - yDown)
                 val minDist = 15
 
-                val row = xDown / board[0].width
-                val column = (yDown - sizeY / 3) / board[0].height
-                val indexFirst = row.toInt() + column.toInt() * numberBlocks
-                Log.d("tag", "${row}, $column, $indexFirst")
+                val column = (xDown / blockSize).toInt()
+                val row = ((yDown - sizeY / 3) / blockSize).toInt()
+                val index = column + row * numberBlocks
+                Log.d("tag", "${row}, $column, $index, ${board[index].type}")
 
                 if (deltaX > deltaY && deltaX > minDist) {
                     if (xUp > xDown) {
                         Log.d("tag", "Swipe right")
+                        if (column < numberBlocks - 1 &&
+                            (canSwap(index, index + 1) || canSwap(index + 1, index))) {
+                            Log.d("tag", "Can swap")
+                        }
                     }
                     else if (xUp < xDown) {
                         Log.d("tag", "Swipe left")
+                        if (column > 0 &&
+                            (canSwap(index, index - 1) || canSwap(index - 1, index))) {
+                            Log.d("tag", "Can swap")
+                        }
                     }
                 }
                 else if (deltaX < deltaY && deltaY > minDist) {
                     if (yUp > yDown) {
                         Log.d("tag", "Swipe Down")
+                        if (row < numberBlocks - 1 &&
+                            (canSwap(index, index + 1) || canSwap(index + 1, index))) {
+                            Log.d("tag", "Can swap")
+                        }
                     }
                     else if (yUp < yDown) {
                         Log.d("tag", "Swipe Up")
+                        if (column > 0 &&
+                            (canSwap(index, index - 1) || canSwap(index - 1, index))) {
+                            Log.d("tag", "Can swap")
+                        }
                     }
                 }
             }

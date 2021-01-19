@@ -11,14 +11,14 @@ class Candy {
     var column : Int = 0
     val width : Int
     val height : Int
-    val drawable : Int
+    val type : Int
     var bitmap : Bitmap
 
-    constructor(context: Context, posX: Int, posY: Int, candy: Int, scale : Float) {
-        row = posX
-        column = posY
-        drawable = candy
-        bitmap = BitmapFactory.decodeResource(context.resources, candy)
+    constructor(context: Context, columm: Int, row: Int, type: Int, scale : Float) {
+        this.row = row
+        this.column = columm
+        this.type = type
+        bitmap = BitmapFactory.decodeResource(context.resources, type)
 
         val width : Int = bitmap.width
         val height : Int = bitmap.height
@@ -39,5 +39,9 @@ class Candy {
         bitmap = resizedBitmap
         this.width = bitmap.width
         this.height = bitmap.height
+    }
+
+    public fun equals(other: Candy) : Boolean {
+        return this.type == other.type
     }
 }
