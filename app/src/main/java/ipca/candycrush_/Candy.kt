@@ -7,16 +7,12 @@ import android.graphics.Matrix
 
 class Candy {
 
-    var row : Int = 0
-    var column : Int = 0
     val width : Int
     val height : Int
     val type : Int
     var bitmap : Bitmap
 
-    constructor(context: Context, columm: Int, row: Int, type: Int, scale : Float) {
-        this.row = row
-        this.column = columm
+    constructor(context: Context, type: Int, scale : Float) {
         this.type = type
         bitmap = BitmapFactory.decodeResource(context.resources, type)
 

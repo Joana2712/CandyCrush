@@ -12,13 +12,16 @@ import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import androidx.annotation.RequiresApi
-import kotlinx.android.synthetic.main.activity_game.view.*
+import com.google.firebase.database.FirebaseDatabase
+import java.sql.Time
+import java.util.*
 import kotlin.math.abs
 
 class GameView  : SurfaceView, Runnable {
 
     var playing = true
     var gameThread : Thread? = null
+    lateinit var database : FirebaseDatabase
 
     var surfaceHolder : SurfaceHolder? = null
     var canvas : Canvas? = null
@@ -26,8 +29,14 @@ class GameView  : SurfaceView, Runnable {
     var sizeX : Int = 0
     var sizeY : Int = 0
 
-    val board = ArrayList<Candy>()
-    val numberBlocks = 10
+    private val candies = arrayOf(
+        R.drawable.bluecandy, R.drawable.greencandy,
+        R.drawable.purplecandy, R.drawable.orangecandy, R.drawable.yellowcandy,
+        R.drawable.redcandy
+    )
+
+    private val numberBlocks = 10
+    private lateinit var board : Array<Candy>
     var xDown : Float = 0f
     var xUp : Float = 0f
     var yDown : Float = 0f
@@ -35,34 +44,24 @@ class GameView  : SurfaceView, Runnable {
 
     var meta = 1900
     var score = 0
-    var moves = 10
+    var moves = 3
+    var isGameOver = false
 
     var blockSize : Float = 0f
-
-    private val candies = arrayOf(
-        R.drawable.bluecandy, R.drawable.greencandy,
-        R.drawable.purplecandy, R.drawable.orangecandy, R.drawable.yellowcandy,
-        R.drawable.redcandy
-    )
 
     private  fun init(context: Context?, sizeX : Int, sizeY : Int) {
         // Set variables
         surfaceHolder = holder
+
+        database = FirebaseDatabase.getInstance()
 
         blockSize = (sizeX / numberBlocks).toFloat()
         this.sizeX = sizeX
         this.sizeY = sizeY
 
         // Fill the board
-        for(row in 0 until numberBlocks) {
-            for (column in 0 until  numberBlocks) {
-                // Choose a random candy
-                val candy = candies[(Math.random() * candies.size).toInt()]
+        board = Array(numberBlocks * numberBlocks) { _ -> randomCandy() }
 
-                // Set a random image
-                board.add(Candy(context!!, column, row, candy, blockSize))
-            }
-        }
     }
 
     constructor(context: Context?, sizeX : Int, sizeY : Int) : super(context) {
@@ -91,18 +90,10 @@ class GameView  : SurfaceView, Runnable {
 
     override fun run() {
         while (playing) {
-            update()
             draw()
             control()
-            WhenIsGameOver()
         }
     }
-
-    private fun update(){
-
-    }
-
-
 
     private fun draw() {
         surfaceHolder?.let {
@@ -117,19 +108,28 @@ class GameView  : SurfaceView, Runnable {
                 canvas?.drawText("Meta :${meta}", 0f, 130f, paint)
                 canvas?.drawText("Score :${score}", 0f, 90f, paint)
 
-                for (candy in board) {
-                    canvas?.drawBitmap(
-                        candy.bitmap,
-                        candy.column.toFloat() * candy.width,
-                        candy.row.toFloat() * candy.height + sizeY / 3,
-                        paint)
+                // Draw the candies
+                for (row in 0 until numberBlocks) {
+                    for (column in 0 until numberBlocks) {
+                        val candy = board[computeIndex(row, column)]
+                        canvas?.drawBitmap(
+                            candy.bitmap,
+                            column.toFloat() * candy.width,
+                            row.toFloat() * candy.height + sizeY / 3,
+                            paint)
+                    }
+                }
+
+                if (isGameOver) {
+                    paint.textSize = 100f
+                    paint.color = Color.RED
+                    canvas?.drawText("GAME OVER", sizeX * .5f - 300,sizeY * .5f, paint)
                 }
 
                 surfaceHolder?.unlockCanvasAndPost(canvas)
             }
         }
     }
-
 
     private fun control() {
         Thread.sleep(17L)
@@ -145,30 +145,27 @@ class GameView  : SurfaceView, Runnable {
     fun resume(){
         playing = true
 
-        /*chronometer.isCountDown = true
-        chronometer.base= SystemClock.elapsedRealtime() + 300000
-        chronometer.start()*/
-        //por margem a 0.00 para o fim
-
         gameThread = Thread(this)
         gameThread!!.start()
     }
 
-    fun WhenIsGameOver() {
+    private fun checkGameOver() {
 
         if(score < meta && moves == 0)
             gameOver()
     }
 
 
-    fun gameOver(){
+    private fun gameOver(){
 
-        playing = false
-
-        canvas = surfaceHolder?.lockCanvas()
-        paint.color = Color.BLUE
-        canvas?.drawText("Game Over", 100F,50F, paint)
-
+        isGameOver = true
+        val date = Date()
+        database.getReference("Scores").child(date.year.toString())
+            .child(date.month.toString())
+            .child(date.day.toString())
+            .child(date.hours.toString())
+            .child(date.minutes.toString())
+            .setValue(score)
     }
 
     /**
@@ -177,39 +174,28 @@ class GameView  : SurfaceView, Runnable {
      */
     private fun canSwap(position: Int, candyIndex: Int) : Boolean {
 
-        var row = board[position].row
-        var column = board[position].column
+        var row = position / numberBlocks
+        var column = position % numberBlocks
         val candy = board[candyIndex]
-        var counter = 0
+        var counter = 1
 
-        // Helper functions
-        fun test(index: Int) : Boolean {
-            return if(candy.equals(board[index])) {
-                counter++
-                true
-            } else
-                false
-        }
-
-        fun computeIndex(row: Int, column: Int) : Int {
-            return column + row * numberBlocks
-        }
+        // Temporarily swap
+        swap(position, candyIndex)
 
         //test rows
         for(i in row - 1 downTo 0){
 
             val nextIndex = computeIndex(i, column)
 
-            // Don't test if the same candy
-            if (candyIndex != nextIndex) {
-                if (test(position)) {
-                    if (counter == 3) {
-                        return true
-                    }
+            if (candy.equals(board[nextIndex])) {
+                counter++
+                if (counter == 3) {
+                    swap(position, candyIndex)
+                    return true
                 }
-                else
-                    break
             }
+            else
+                break
         }
 
         //test rows
@@ -217,96 +203,146 @@ class GameView  : SurfaceView, Runnable {
 
             val nextIndex = computeIndex(i, column)
 
-            // Don't test if the same candy
-            if (candyIndex != nextIndex) {
-                if (test(position)) {
-                    if (counter == 3) {
-                        return true
-                    }
+            if (candy.equals(board[nextIndex])) {
+                counter++
+                if (counter == 3) {
+                    swap(position, candyIndex)
+                    return true
                 }
-                else
-                    break
             }
+            else
+                break
         }
 
         //test columns
-        for(i in column - 10 downTo 0 ){
+        for(i in column - 1 downTo 0 ){
 
             val nextIndex = computeIndex(row, i)
 
-            // Don't test if the same candy
-            if (position != nextIndex) {
-                if (test(nextIndex)) {
-                    if (counter == 3) {
-                        return true
-                    }
+            if (candy.equals(board[nextIndex])) {
+                counter++
+                if (counter == 3) {
+                    swap(position, candyIndex)
+                    return true
                 }
-                else
-                    break
             }
+            else
+                break
         }
 
         //test columns
-        for(i in column + 10 until 9 ){
+        for(i in column + 1 until 9 ){
 
             val nextIndex = computeIndex(row, i)
 
-            // Don't test if the same candy
-            if (position != nextIndex) {
-                if (test(nextIndex)) {
-                    if (counter == 3) {
-                        return true
-                    }
+            if (candy.equals(board[nextIndex])) {
+                counter++
+                if (counter == 3) {
+                    swap(position, candyIndex)
+                    return true
                 }
-                else
-                    break
             }
+            else
+                break
         }
 
-        Log.d("tag", "$counter")
+        swap(position, candyIndex)
         return false
     }
 
-    private fun Swipe(index1: Int, index2: Int){
+    private fun onSwap(index1: Int, index2: Int){
 
-        var row = board[index1].row
-        var column = board[index1].column
+        swap(index1, index2)
 
-       val temp: Candy
+        // First candy
+        var row1 = index1 / numberBlocks
+        var column1 = index1 % numberBlocks
+        val candy = board[index1]
 
-        //swipe
-        temp = board[index1]
-       board[index1] = board[index2]
+        fun delete(index: Int) {
+            if (index - numberBlocks >= 0) {
+                board[index] = board[index - numberBlocks]
+                delete(index - numberBlocks)
+            }
+        }
+
+        if (row1 > 0) {
+            while (candy.equals(board[index1])) {
+                delete(index1)
+                // Create a new one
+                board[column1] = randomCandy()
+                score += 10
+            }
+        }
+        else
+            board[column1] = randomCandy()
+
+        // Down first candy
+        for(i in row1 + 1 until 9){
+            val index = computeIndex(i, column1)
+
+            if (board[index].equals(candy)) {
+                delete(index)
+                // Create a new one
+                board[column1] = randomCandy()
+                score += 10
+            }
+            else
+                break
+        }
+
+        // Left first candy
+        for(i in column1 - 1 downTo 0){
+            val index = computeIndex(row1, i)
+
+            if (board[index].equals(candy)) {
+                delete(index)
+                // Create a new one
+                board[i] = randomCandy()
+                score += 10
+            }
+            else
+                break
+        }
+
+        // Right first candy
+        for(i in column1 + 1 until 9){
+            val index = computeIndex(row1, i)
+
+            if (board[index].equals(candy)) {
+                delete(index)
+                // Create a new one
+                board[i] = randomCandy()
+                score += 10
+            }
+            else
+                break
+        }
+    }
+
+    private fun computeIndex(row: Int, column: Int) : Int {
+        return column + row * numberBlocks
+    }
+
+    private fun swap(index1: Int, index2: Int) {
+        val temp = board[index1]
+        board[index1] = board[index2]
         board[index2] = temp
+    }
 
-        //rows
-       for(i in row - 1 downTo 0){
+    private fun randomCandy() : Candy {
+        // Choose a random candy
+        val candy = candies[(Math.random() * candies.size).toInt()]
 
-
-       }
-        
-        //rows
-        for(i in row + 1 until 9){
-
-
-        }
-
-
-        //columns
-        for(i in column - 10 downTo 0){
-
-
-        }
-
-        //columns
-        for(i in column + 10 until 9){
-
-
-        }
-
+        // Set a random image
+        return Candy(context!!, candy, blockSize)
     }
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
+
+        if (moves <= 0) {
+            return true
+        }
 
         when (event?.action){
             MotionEvent.ACTION_DOWN -> {
@@ -319,45 +355,75 @@ class GameView  : SurfaceView, Runnable {
 
                 val deltaX = abs(xUp - xDown)
                 val deltaY = abs(yUp - yDown)
-                val minDist = 15
+                val minDist = blockSize
 
                 val column = (xDown / blockSize).toInt()
                 val row = ((yDown - sizeY / 3) / blockSize).toInt()
-                val index = column + row * numberBlocks
-                Log.d("tag", "${row}, $column, $index, ${board[index].type}")
+                if (row < 0)
+                    return true
+                val index = computeIndex(row, column)
+                var moved = false
 
                 if (deltaX > deltaY && deltaX > minDist) {
                     if (xUp > xDown) {
-                        Log.d("tag", "Swipe right")
-                        if (column < numberBlocks - 1 &&
-                            (canSwap(index, index + 1) || canSwap(index + 1, index))) {
-                            Log.d("tag", "Can swap")
+                        // Right swipe
+                        if (column < numberBlocks - 1) {
+                            if (canSwap(index, index + 1)) {
+                                onSwap(index, index + 1)
+                                moved = true
+                            }
+                            if (canSwap(index + 1, index)) {
+                                onSwap(index + 1, index)
+                                moved = true
+                            }
                         }
                     }
                     else if (xUp < xDown) {
-                        Log.d("tag", "Swipe left")
-                        if (column > 0 &&
-                            (canSwap(index, index - 1) || canSwap(index - 1, index))) {
-                            Log.d("tag", "Can swap")
-
+                        // Left swipe
+                        if (column > 0) {
+                            if (canSwap(index, index - 1)) {
+                                onSwap(index, index - 1)
+                                moved = true
+                            }
+                            if (canSwap(index - 1, index)) {
+                                onSwap(index - 1, index)
+                                moved = true
+                            }
                         }
                     }
                 }
                 else if (deltaX < deltaY && deltaY > minDist) {
                     if (yUp > yDown) {
-                        Log.d("tag", "Swipe Down")
-                        if (row < numberBlocks - 1 &&
-                            (canSwap(index, index + numberBlocks) || canSwap(index + numberBlocks, index))) {
-                            Log.d("tag", "Can swap")
+                        // Down swipe
+                        if (row < numberBlocks - 1) {
+                            if (canSwap(index, index + numberBlocks)) {
+                                onSwap(index, index + numberBlocks)
+                                moved = true
+                            }
+                            if (canSwap(index + numberBlocks, index)) {
+                                onSwap(index + numberBlocks, index)
+                                moved = true
+                            }
                         }
                     }
                     else if (yUp < yDown) {
-                        Log.d("tag", "Swipe Up")
-                        if (column > 0 &&
-                            (canSwap(index, index - numberBlocks) || canSwap(index - numberBlocks, index))) {
-                            Log.d("tag", "Can swap")
+                        // Up swipe
+                        if (column > 0) {
+                            if (canSwap(index, index - numberBlocks)) {
+                                onSwap(index, index - numberBlocks)
+                                moved = true
+                            }
+                            if (canSwap(index - numberBlocks, index)) {
+                                onSwap(index - numberBlocks, index)
+                                moved = true
+                            }
                         }
                     }
+                }
+
+                if (moved) {
+                    moves--
+                    checkGameOver()
                 }
             }
         }
